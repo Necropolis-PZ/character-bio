@@ -12,14 +12,18 @@ end
 
 function ISWriteBio:render()
   local z = 15 * FONT_SCALE
-  
+
   self:drawTextCentre(self.targetPlayerName .. "'s Bio", self.width/2, z, 1,1,1,1, UIFont.Medium)
+end
+
+function ISWriteBio.onLoad(args)
+  ISWriteBio.instance.entry:setText(args and args.description or "No Bio Set.")
 end
 
 local function OnServerCommand(module, command, args)
   if module == "CharacterBio" and command == "load" then
     Events.OnServerCommand.Remove(OnServerCommand)
-    ISWriteBio.instance.entry:setText(args and args.description or "No Bio Set.")
+    ISWriteBio.onLoad(args)
   end
 end
 
@@ -27,7 +31,7 @@ function ISWriteBio:createChildren()
   local btnWid = 150 * FONT_SCALE
   local btnHgt = FONT_HGT_SMALL + 5 * 2 * FONT_SCALE
   local padBottom = 10 * FONT_SCALE
-  
+
   local height = 35 * FONT_HGT_SMALL + 4
   self.entry = ISTextEntryBox:new("Loading...", padBottom, 30 * FONT_SCALE + FONT_HGT_MEDIUM, self.width - 20 * FONT_SCALE, height)
   self.entry:initialise()
@@ -37,7 +41,7 @@ function ISWriteBio:createChildren()
   self:addChild(self.entry)
   Events.OnServerCommand.Add(OnServerCommand)
   sendClientCommand("CharacterBio", "load", {self.targetPlayerUsername})
-  
+
   if self.canEdit then
     self.save = ISButton:new(padBottom, self.height - padBottom - btnHgt, btnWid, btnHgt, "SAVE", self, ISWriteBio.onSave)
     self.save:initialise()
@@ -46,7 +50,7 @@ function ISWriteBio:createChildren()
   else
     self.entry:setEditable(false)
   end
-  
+
   self.cancel = ISButton:new(self.width - btnWid - padBottom, self.height - padBottom - btnHgt, btnWid, btnHgt, getText("UI_btn_close"), self, ISWriteBio.close)
   self.cancel:initialise()
   self.cancel.borderColor = self.buttonBorderColor
