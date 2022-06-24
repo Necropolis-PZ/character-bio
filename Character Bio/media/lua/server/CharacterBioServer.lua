@@ -1,19 +1,12 @@
 
-if isClient() then return end
+if not isServer() then return end
 
 local Json = require("json")
 
-local CharacterBioStorage = {}
+local CharacterBioStorage
 
 
------------------------------- encoding/decoding ------------------------------
-local function Save()
-    local fileWriterObj = getFileWriter("CharacterBioStorage.json", true, false)
-    local json = Json.Encode(CharacterBioStorage)
-    fileWriterObj:write(json)
-    fileWriterObj:close()
-end
-
+----------------------------------- loading -----------------------------------
 local function Load()
     local fileReaderObj = getFileReader("CharacterBioStorage.json", true)
     local json = ""
@@ -28,30 +21,29 @@ local function Load()
         CharacterBioStorage = Json.Decode(json)
     end
 end
+
+Events.OnInitGlobalModData.Add(function()
+	Load()
+
+  local newStorage = ModData.getOrCreate("CharacterBioStorage")
+
+  if CharacterBioStorage then
+    for k, v in pairs(CharacterBioStorage) do
+      newStorage[k] = {description = v}
+    end
+  end
+
+  CharacterBioStorage = newStorage
+end)
 -------------------------------------------------------------------------------
 
-
-local function OnClientCommand(module, command, player, args)
+Events.OnClientCommand.Add(function(module, command, player, args)
 	if module == "CharacterBio" then
-
     if command == "save" then
-      CharacterBioStorage[args[1]] = args[2]
+      CharacterBioStorage[args[1]].description = args[2]
     elseif command == "load" then
-      sendServerCommand(player, module, command, {CharacterBioStorage[args[1]]})
+      sendServerCommand(player, module, command, CharacterBioStorage[args[1]])
     end
 
   end
-end
-
-local function OnInitGlobalModData(isNewGame)
-	Load()
-  print(CharacterBioStorage)
-end
-
-local function EveryHours()
-	Save()
-end
-
-Events.OnClientCommand.Add(OnClientCommand)
-Events.OnInitGlobalModData.Add(OnInitGlobalModData)
-Events.EveryHours.Add(EveryHours)
+end)

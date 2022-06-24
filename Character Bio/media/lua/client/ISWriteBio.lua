@@ -1,15 +1,9 @@
 
-ISWriteBio = ISPanel:derive("ISWriteBio")
+local ISWriteBio = ISPanel:derive("ISWriteBio")
 
 local FONT_HGT_SMALL = getTextManager():getFontHeight(UIFont.Small)
 local FONT_HGT_MEDIUM = getTextManager():getFontHeight(UIFont.Medium)
-local FONT_HGT_LARGE = getTextManager():getFontHeight(UIFont.Large)
-
-
-function ISWriteBio:initialise()
-    ISPanel.initialise(self)
-    self:create()
-end
+local FONT_SCALE = FONT_HGT_SMALL / 14
 
 
 function ISWriteBio:setVisible(visible)
@@ -17,81 +11,73 @@ function ISWriteBio:setVisible(visible)
 end
 
 function ISWriteBio:render()
-    local z = 15
+    local z = 15 * FONT_SCALE
 
-    self:drawText(self.targetPlayerName .. "'s Bio", self.width/2 - (getTextManager():MeasureStringX(UIFont.Medium, getText("UI_mainscreen_userpanel")) / 2), z, 1,1,1,1, UIFont.Medium)
-
+    self:drawTextCentre(self.targetPlayerName .. "'s Bio", self.width/2, z, 1,1,1,1, UIFont.Medium)
 end
 
-function ISWriteBio:create()
-    local btnWid = 150
-    local btnHgt = math.max(25, FONT_HGT_SMALL + 3 * 2)
-    local padBottom = 10
+local function OnServerCommand(module, command, args)
+  if module == "CharacterBio" and command == "load" then
+    Events.OnServerCommand.Remove(OnServerCommand)
+    ISWriteBio.instance.entry:setText(args and args.description or "No Bio Set.")
+  end
+end
 
-    local inset = 2
-    local height = inset + 35 * FONT_HGT_SMALL + inset
-    sendClientCommand("CharacterBio", "load", {self.targetPlayerUsername})
-    self.entry = ISTextEntryBox:new("Loading...", self:getWidth() / 2 - ((self:getWidth() - 20) / 2), 45, self:getWidth() - 20, height)
+function ISWriteBio:createChildren()
+    local btnWid = 150 * FONT_SCALE
+    local btnHgt = FONT_HGT_SMALL + 5 * 2 * FONT_SCALE
+    local padBottom = 10 * FONT_SCALE
+
+    local height = 35 * FONT_HGT_SMALL + 4
+    self.entry = ISTextEntryBox:new("Loading...", padBottom, 30 * FONT_SCALE + FONT_HGT_MEDIUM, self.width - 20 * FONT_SCALE, height)
     self.entry:initialise()
     self.entry:instantiate()
     self.entry:setMultipleLine(true)
     self.entry.javaObject:setMaxLines(35)
-	--self.entry.javaObject:setMaxTextLength(20)
     self:addChild(self.entry)
-    if not self.canEdit then
-        self.entry:setEditable(false)
-    end
+    Events.OnServerCommand.Add(OnServerCommand)
+    sendClientCommand("CharacterBio", "load", {self.targetPlayerUsername})
 
     if self.canEdit then
-      self.save = ISButton:new(10, self:getHeight() - padBottom - btnHgt, btnWid, btnHgt, "SAVE", self, ISWriteBio.onOptionMouseDown)
-      self.save.internal = "SAVE"
+      self.save = ISButton:new(padBottom, self.height - padBottom - btnHgt, btnWid, btnHgt, "SAVE", self, ISWriteBio.onSave)
       self.save:initialise()
-      self.save:instantiate()
       self.save.borderColor = self.buttonBorderColor
       self:addChild(self.save)
+    else
+      self.entry:setEditable(false)
     end
 
-    self.cancel = ISButton:new(self:getWidth() - btnWid - 10, self:getHeight() - padBottom - btnHgt, btnWid, btnHgt, getText("UI_btn_close"), self, ISWriteBio.onOptionMouseDown)
-    self.cancel.internal = "CANCEL"
+    self.cancel = ISButton:new(self.width - btnWid - padBottom, self.height - padBottom - btnHgt, btnWid, btnHgt, getText("UI_btn_close"), self, ISWriteBio.close)
     self.cancel:initialise()
-    self.cancel:instantiate()
     self.cancel.borderColor = self.buttonBorderColor
     self:addChild(self.cancel)
 end
 
-function ISWriteBio:onOptionMouseDown(button, x, y)
-  if button.internal == "CANCEL" then
-    self:close()
-  elseif button.internal == "SAVE" then
-    sendClientCommand("CharacterBio", "save", {self.targetPlayerUsername, self.entry:getText()})
-    self:close()
-  end
+function ISWriteBio:onSave(button, x, y)
+  sendClientCommand("CharacterBio", "save", {self.targetPlayerUsername, self.entry:getText()})
+  self:close()
 end
 
 function ISWriteBio:close()
-    self:setVisible(false)
-    self:removeFromUIManager()
-    ISUserPanelUI.instance = nil
-end
-
-function ISWriteBio:setEntryText(text)
-    self.entry:setText(text)
+  self:setVisible(false)
+  self:removeFromUIManager()
+  ISWriteBio.instance = nil
 end
 
 function ISWriteBio:new(x, y, width, height, targetPlayer, canEdit)
-    local o = {}
-    o = ISPanel:new(x, y, width, height)
+    local o = ISPanel:new(x, y, width, height)
     setmetatable(o, self)
     self.__index = self
-    o.variableColor={r=0.9, g=0.55, b=0.1, a=1}
+    o.variableColor = {r=0.9, g=0.55, b=0.1, a=1}
     o.borderColor = {r=0.4, g=0.4, b=0.4, a=1}
     o.backgroundColor = {r=0, g=0, b=0, a=0.8}
     o.buttonBorderColor = {r=0.7, g=0.7, b=0.7, a=0.5}
-    o.zOffsetSmallFont = 25
     o.moveWithMouse = true
     o.targetPlayerName = targetPlayer:getDescriptor():getForename()
-	o.targetPlayerUsername = targetPlayer:getUsername()
+	  o.targetPlayerUsername = targetPlayer:getUsername()
     o.canEdit = canEdit
     ISWriteBio.instance = o
     return o
 end
+
+return ISWriteBio

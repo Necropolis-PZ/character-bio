@@ -1,13 +1,18 @@
 
-local bioMenu
+local ISWriteBio = require "ISWriteBio"
 
 local function onBioMenu(player, canEdit)
-  bioMenu = ISWriteBio:new(100, 100, 400, 600, player, canEdit)
-  bioMenu:initialise()
-  bioMenu:addToUIManager()
+  local FONT_SCALE = getTextManager():getFontHeight(UIFont.Small) / 14
+  local core = getCore()
+  local width = 400 * FONT_SCALE
+  local height = 600 * FONT_SCALE
+  local ui =ISWriteBio:new((core:getScreenWidth() - width)/2, (core:getScreenHeight() - height)/2, width, height, player, canEdit)
+
+  ui:initialise()
+  ui:addToUIManager()
 end
 
-local function OnFillWorldObjectContextMenu(player, context, worldObjects, test)
+Events.OnFillWorldObjectContextMenu.Add(function(player, context, worldObjects, test)
   if test then return true end
   local playerObj = getSpecificPlayer(player)
 
@@ -32,18 +37,4 @@ local function OnFillWorldObjectContextMenu(player, context, worldObjects, test)
     end
   end
 
-end
-
-local function OnServerCommand(module, command, args)
-  if module == "CharacterBio" and command == "load" then
-    print(args)
-    if args then
-      bioMenu:setEntryText(args[1])
-    else
-      bioMenu:setEntryText("No Bio Set.")
-    end
-  end
-end
-
-Events.OnServerCommand.Add(OnServerCommand)
-Events.OnFillWorldObjectContextMenu.Add(OnFillWorldObjectContextMenu)
+end)
